@@ -226,7 +226,6 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
     import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-    // ✨ 修改：補上 initializeFirestore, persistentLocalCache, persistentMultipleTabManager 的引入
     import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, setDoc, getDoc, collection, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
     const globalAppId = 'homework-checker-pro';
@@ -241,7 +240,6 @@
     
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
-    // ✨ 修改：改用新版的 initializeFirestore 以避免警告並提升穩定性
     const db = initializeFirestore(app, {
         localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
     });
@@ -249,8 +247,8 @@
     let currentUser = null;
     let allUsersData = [];
     let inspectTargetUid = null;
-    let inspectTargetData = null; // 遠端拉取的目標完整資料
-    let inspectModifiedData = null; // 暫存修改的副本
+    let inspectTargetData = null; 
+    let inspectModifiedData = null; 
     let isModified = false;
     
     // --- Toast 提示系統 ---
@@ -260,7 +258,7 @@
         const toast = document.createElement('div');
         const isSuccess = type === 'success';
         toast.className = `transform translate-y-4 opacity-0 transition-all duration-300 flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl border text-sm font-bold pointer-events-auto backdrop-blur-md ${
-            isSuccess ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+            isSuccess ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : (type === 'error' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 'bg-blue-500/10 text-blue-400 border-blue-500/20')
         }`;
         const icon = isSuccess 
             ? '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>'
@@ -272,7 +270,8 @@
     }
 
     onAuthStateChanged(auth, (user) => {
-        if (user && user.email === 'ianw.solar@gmail.com') {
+        // ✨ 修改：轉換為小寫比對，避免 Google 登入帳號的大小寫差異
+        if (user && user.email?.toLowerCase() === 'ianw.solar@gmail.com') {
             currentUser = user;
             document.getElementById('login-overlay').style.opacity = '0';
             setTimeout(() => document.getElementById('login-overlay').classList.add('hidden'), 500);
@@ -297,7 +296,6 @@
     document.getElementById('admin-logout-btn').addEventListener('click', () => signOut(auth));
 
     function initDashboard() {
-        // 1. 監聽伺服器維護配置
         onSnapshot(doc(db, 'artifacts', globalAppId, 'public', 'data', 'serverConfig', 'main'), (docSnap) => {
             if (docSnap.exists()) {
                 const data = docSnap.data();
@@ -312,7 +310,6 @@
             }
         });
 
-        // 2. 監聽全域用戶 Profile
         onSnapshot(collection(db, 'artifacts', globalAppId, 'public', 'data', 'userProfiles'), (snapshot) => {
             allUsersData = [];
             let totalSize = 0;
@@ -327,11 +324,10 @@
                 if (data.dataSizeKB) totalSize += parseFloat(data.dataSizeKB);
                 if (data.lastActive) {
                     const last = new Date(data.lastActive);
-                    if ((now - last) < 24 * 60 * 60 * 1000) activeCount++; // 24H內視為近期活躍
+                    if ((now - last) < 24 * 60 * 60 * 1000) activeCount++;
                 }
             });
 
-            // 更新 KPI
             document.getElementById('kpi-total-users').textContent = allUsersData.length;
             document.getElementById('kpi-active-users').textContent = activeCount;
             document.getElementById('kpi-total-size').innerHTML = `${totalSize.toFixed(1)} <span class="text-lg text-gray-500">KB</span>`;
@@ -405,7 +401,6 @@
             tbody.appendChild(tr);
         });
 
-        // 綁定動態按鈕
         document.querySelectorAll('.lock-btn').forEach(b => b.addEventListener('click', async (e) => {
             const uid = e.target.dataset.uid; const locked = e.target.dataset.locked === 'true';
             await updateDoc(doc(db, 'artifacts', globalAppId, 'public', 'data', 'userProfiles', uid), { isLocked: !locked });
@@ -469,29 +464,57 @@
 
         try {
             const snap = await getDoc(doc(db, 'artifacts', globalAppId, 'users', uid, 'appData', 'mainDoc'));
-            if(snap.exists() && snap.data().data) {
-                inspectTargetData = JSON.parse(snap.data().data);
-                inspectModifiedData = JSON.parse(JSON.stringify(inspectTargetData)); // Deep Copy
-                document.getElementById('inspector-loading').classList.add('hidden');
-                document.querySelector('.inspect-tab[data-target="tab-hw"]').click(); // 預設打開 HW
-                renderInspectorClasses();
-                renderInspectorContactBook();
-                renderInspectorConfig();
+            
+            // ✨ 修改：加入資料存在判斷與 JSON 防呆機制
+            if(snap.exists()) {
+                const documentData = snap.data();
+                
+                if (documentData && documentData.data) {
+                    try {
+                        // 防呆機制：判斷資料原本就是物件，還是字串
+                        if (typeof documentData.data === 'string') {
+                            inspectTargetData = JSON.parse(documentData.data);
+                        } else {
+                            inspectTargetData = documentData.data; // 已是物件，不需要 parse
+                        }
+                        
+                        inspectModifiedData = JSON.parse(JSON.stringify(inspectTargetData)); // Deep Copy
+                        document.getElementById('inspector-loading').classList.add('hidden');
+                        document.querySelector('.inspect-tab[data-target="tab-hw"]').click();
+                        
+                        renderInspectorClasses();
+                        renderInspectorContactBook();
+                        renderInspectorConfig();
+                        
+                    } catch(parseError) {
+                        // 若是 JSON 格式毀損，攔截並顯示這個錯誤
+                        console.error("JSON 解析失敗 (該用戶資料可能格式異常):", parseError);
+                        window.showToast("目標資料格式解析失敗！", "error");
+                        document.getElementById('inspector-loading').classList.add('hidden');
+                        document.querySelector('.modal-close').click();
+                    }
+                } else {
+                    // 文件存在但沒有 data 欄位
+                    document.getElementById('inspector-loading').classList.add('hidden');
+                    document.getElementById('inspector-empty').classList.remove('hidden');
+                }
             } else {
+                // 文件根本不存在
                 document.getElementById('inspector-loading').classList.add('hidden');
                 document.getElementById('inspector-empty').classList.remove('hidden');
             }
         } catch(e) {
-            window.showToast("拉取資料失敗或權限不足", "error");
+            // ✨ 修改：將被 Firebase 擋下的真實錯誤印出來
+            console.error("Firestore 權限或連線錯誤:", e);
+            window.showToast("拉取失敗：" + e.message, "error");
             document.querySelector('.modal-close').click();
         }
     }
 
-    // 渲染監看：班級與下拉選單
     function renderInspectorClasses() {
         const clsSel = document.getElementById('inspect-class');
         clsSel.innerHTML = '';
-        if(!inspectModifiedData.classes || inspectModifiedData.classes.length === 0) return;
+        if(!inspectModifiedData || !inspectModifiedData.classes || inspectModifiedData.classes.length === 0) return;
         inspectModifiedData.classes.forEach(c => {
             const o = document.createElement('option'); o.value = c.id; o.textContent = c.name; clsSel.appendChild(o);
         });
@@ -500,11 +523,12 @@
         clsSel.onchange = (e) => renderInspectorHomework(e.target.value);
     }
 
-    // 渲染監看：作業與學生
     function renderInspectorHomework(classId) {
         const hwSel = document.getElementById('inspect-hw');
         const grid = document.getElementById('inspect-students');
         hwSel.innerHTML = ''; grid.innerHTML = '';
+        if (!inspectModifiedData.homeworks) return;
+        
         const hws = inspectModifiedData.homeworks.filter(h => h.classId === classId);
         if(hws.length === 0) {
             hwSel.innerHTML = '<option>此班級無作業</option>';
@@ -523,7 +547,6 @@
             hw.students.forEach((s, idx) => {
                 const statusDef = typeInfo.statuses.find(st => st.key === s.status) || typeInfo.statuses[0];
                 const btn = document.createElement('button');
-                // 將 Tailwind 顏色對應轉換成適合後台暗黑模式的展現 (用 border 和 text)
                 let colorClass = 'border-gray-700 text-gray-500 bg-gray-900/50';
                 if(statusDef.color.includes('blue')) colorClass = 'border-blue-500 text-blue-400 bg-blue-500/10';
                 if(statusDef.color.includes('emerald')||statusDef.color.includes('green')) colorClass = 'border-emerald-500 text-emerald-400 bg-emerald-500/10';
@@ -533,14 +556,13 @@
                 btn.className = `p-2 rounded-xl border flex flex-col items-center justify-center transition-all hover:scale-105 ${colorClass}`;
                 btn.innerHTML = `<span class="text-xs font-black opacity-60">${s.seat}</span><span class="text-[10px] font-bold mt-1 leading-tight text-center w-full truncate">${statusDef.text}</span>`;
                 
-                // 點擊修改
                 btn.onclick = () => {
                     let curIdx = typeInfo.statuses.findIndex(st => st.key === s.status);
                     const nextSt = typeInfo.statuses[(curIdx+1)%typeInfo.statuses.length];
                     inspectModifiedData.homeworks.find(h => h.id === hwId).students[idx].status = nextSt.key;
                     isModified = true;
                     btnSaveInspect.disabled = false;
-                    drawGrid(hwId); // 重新繪製更新顏色
+                    drawGrid(hwId); 
                 };
                 grid.appendChild(btn);
             });
@@ -552,6 +574,8 @@
     function renderInspectorContactBook() {
         const list = document.getElementById('inspect-cb-list');
         list.innerHTML = '';
+        if (!inspectModifiedData.classes) return;
+        
         inspectModifiedData.classes.forEach(c => {
             if(c.contactBook) {
                 Object.keys(c.contactBook).forEach(dateStr => {
@@ -572,6 +596,8 @@
     function renderInspectorConfig() {
         const list = document.getElementById('inspect-cfg-list');
         list.innerHTML = '';
+        if (!inspectModifiedData.homeworkTypes) return;
+        
         inspectModifiedData.homeworkTypes.forEach(t => {
             const block = document.createElement('div');
             block.className = 'p-3 bg-white/5 border border-white/10 rounded-xl';
@@ -592,10 +618,6 @@
         if(!isModified || !inspectTargetUid) return;
         
         try {
-            // 在目標的 profile 塞入一個 Request，讓使用者端下次連線時可以選擇套用。
-            // 由於前台目前尚未實作接受申請 UI，我們先把異動的 Data 直接包裝成 payload 存放在遠端專屬節點，或直接顯示強制寫入。
-            // 這裡直接對 userProfile 新增一個欄位 pendingEditRequest (此為擴充機制)
-            
             const payload = {
                 requestedBy: 'System Admin',
                 timestamp: new Date().toISOString(),
