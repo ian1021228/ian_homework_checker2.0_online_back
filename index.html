@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Pro - 作業點收系統 戰情室</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: { primary: tailwind.colors.indigo, gray: tailwind.colors.slate }
+                }
+            }
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 9999px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        .glass-panel { background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.08); }
+        body { background-color: #020617; background-image: radial-gradient(circle at top right, rgba(79, 70, 229, 0.15), transparent 40%), radial-gradient(circle at bottom left, rgba(225, 29, 72, 0.1), transparent 40%); }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); }
+    </style>
+</head>
+<body class="text-gray-300 font-sans h-screen flex overflow-hidden selection:bg-primary-500/30 antialiased">
+
+    <div id="login-overlay" class="fixed inset-0 z-[100] bg-[#020617] flex flex-col items-center justify-center transition-opacity duration-500">
+        <div class="w-16 h-16 bg-primary-500/20 rounded-2xl flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(99,102,241,0.3)] border border-primary-500/30">
+            <svg class="w-8 h-8 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+        </div>
+        <h1 class="text-3xl font-black text-white mb-2 tracking-tight">System Admin Pro</h1>
+        <p class="text-gray-400 mb-8 font-medium text-sm">請使用系統管理員憑證登入</p>
+        <button id="admin-login-btn" class="bg-white text-gray-900 hover:bg-gray-100 font-bold py-3 px-6 rounded-xl shadow-lg transition-transform active:scale-95 flex items-center gap-3">
+            <svg class="w-5 h-5" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+            Google 最高權限登入
+        </button>
+        <p id="auth-error-msg" class="text-rose-500 font-bold mt-4 hidden bg-rose-500/10 px-4 py-2 rounded-lg border border-rose-500/20"></p>
+    </div>
+
+    <aside class="w-64 glass-panel border-r-white/10 hidden sm:flex flex-col z-10">
+        <div class="h-20 flex items-center px-6 border-b border-white/5 shadow-sm">
+            <span class="text-xl font-black text-white tracking-wider flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full bg-primary-500 shadow-[0_0_10px_rgba(99,102,241,0.8)] animate-pulse"></span> ADMIN PRO
+            </span>
+        </div>
+        <nav class="flex-1 px-4 py-6 space-y-2">
+            <a href="#" class="flex items-center gap-3 px-4 py-3 bg-primary-500/10 text-primary-400 rounded-xl font-bold border border-primary-500/20 shadow-inner">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path></svg> 用戶監控矩陣
+            </a>
+        </nav>
+        <div class="p-4 border-t border-white/5">
+            <button id="admin-logout-btn" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 hover:bg-rose-500/20 hover:text-rose-400 text-gray-400 transition-colors font-bold text-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg> 安全登出
+            </button>
+        </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col h-screen relative z-0">
+        <!-- 頂部標頭 -->
+        <header class="h-20 glass-panel border-b-white/5 flex items-center justify-between px-8 z-10 sticky top-0">
+            <h2 class="text-2xl font-black text-white">全球節點即時總覽</h2>
+            <div class="flex items-center gap-4">
+                <span class="text-sm font-bold text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20 flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span> 連線中
+                </span>
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-6 lg:p-8 custom-scrollbar">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="glass-panel p-6 rounded-2xl relative overflow-hidden group hover:border-primary-500/30 transition-colors">
+                    <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform"><svg class="w-16 h-16 text-primary-500" fill="currentColor" viewBox="0 0 20 20"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3z"></path></svg></div>
+                    <h3 class="text-gray-400 font-bold text-sm mb-1 uppercase tracking-wider">總連線節點數</h3>
+                    <div class="text-4xl font-black text-white" id="kpi-total-users">0</div>
+                    <p class="text-xs text-primary-400 mt-2 font-medium">含一般會員與訪客</p>
+                </div>
+                <div class="glass-panel p-6 rounded-2xl relative overflow-hidden group hover:border-emerald-500/30 transition-colors">
+                    <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform"><svg class="w-16 h-16 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>
+                    <h3 class="text-gray-400 font-bold text-sm mb-1 uppercase tracking-wider">近期活躍 (24H內)</h3>
+                    <div class="text-4xl font-black text-white" id="kpi-active-users">0</div>
+                    <p class="text-xs text-gray-500 mt-2 font-medium">近期心跳同步</p>
+                </div>
+                <div class="glass-panel p-6 rounded-2xl relative overflow-hidden group hover:border-amber-500/30 transition-colors">
+                    <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform"><svg class="w-16 h-16 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"></path></svg></div>
+                    <h3 class="text-gray-400 font-bold text-sm mb-1 uppercase tracking-wider">雲端資料庫總負載</h3>
+                    <div class="text-4xl font-black text-white" id="kpi-total-size">0.0 <span class="text-lg text-gray-500">KB</span></div>
+                    <p class="text-xs text-gray-500 mt-2 font-medium">全服 JSON 主檔總容量</p>
+                </div>
+            </div>
+
+            <div class="glass-panel rounded-2xl p-6 mb-8 border-l-4 border-l-rose-500 shadow-[0_0_15px_rgba(225,29,72,0.1)]">
+                <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+                    <div>
+                        <h3 class="text-lg font-black text-white flex items-center gap-2 mb-1">
+                            <svg class="w-5 h-5 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg> 全局維護與遷移控制
+                        </h3>
+                        <p class="text-sm text-gray-400 font-medium">啟用將阻斷全服一般用戶操作。可附加新版連結引導無縫轉移。</p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-3">
+                        <label class="flex items-center text-sm font-bold text-white cursor-pointer bg-black/30 px-4 py-2.5 rounded-xl border border-white/10 hover:bg-black/50 transition-colors">
+                            <input type="checkbox" id="maint-toggle" class="mr-2 h-4 w-4 text-rose-500 rounded border-gray-700 bg-gray-900 focus:ring-rose-500 focus:ring-offset-gray-900">
+                            <span id="maint-status-text" class="ml-1 text-gray-400">系統正常</span>
+                        </label>
+                        <input type="text" id="maint-msg" class="w-48 bg-black/30 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:border-primary-500 outline-none" placeholder="自訂維護文字 (選填)">
+                        <input type="text" id="maint-url" class="w-48 bg-black/30 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:border-primary-500 outline-none" placeholder="新版本網址 (選填)">
+                        <button id="maint-save-btn" class="bg-rose-600 hover:bg-rose-500 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg transition-all flex items-center gap-2 text-sm">發布生效</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-panel rounded-2xl overflow-hidden flex flex-col border border-white/10">
+                <div class="p-5 border-b border-white/5 flex justify-between items-center bg-black/20">
+                    <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                        <svg class="w-5 h-5 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg> 終端節點陣列
+                    </h3>
+                    <input type="text" id="search-input" class="bg-black/30 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-primary-500 w-64 transition-colors placeholder-gray-600" placeholder="搜尋信箱或名稱...">
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse whitespace-nowrap min-w-[800px]">
+                        <thead>
+                            <tr class="bg-black/40 text-gray-400 text-xs uppercase tracking-wider font-bold">
+                                <th class="p-4 border-b border-white/5">身分標籤 / Email</th>
+                                <th class="p-4 border-b border-white/5">最後心跳</th>
+                                <th class="p-4 border-b border-white/5">負載容量</th>
+                                <th class="p-4 border-b border-white/5">控管狀態</th>
+                                <th class="p-4 border-b border-white/5 text-right">戰術操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-tbody" class="divide-y divide-white/5 text-sm">
+                            <tr><td colspan="5" class="p-8 text-center text-gray-500 font-bold animate-pulse">📡 正在攔截雲端訊號...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="inspector-modal" class="fixed inset-0 z-[200] hidden bg-[#020617]/90 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 opacity-0 transition-opacity duration-300">
+        <div class="glass-panel w-full max-w-6xl h-[90vh] rounded-3xl flex flex-col shadow-2xl transform scale-95 transition-transform duration-300 border border-white/10 overflow-hidden relative">
+            
+            <div class="p-5 sm:px-8 border-b border-white/10 flex justify-between items-center bg-black/40 relative z-10">
+                <div>
+                    <h2 class="text-xl font-black text-white flex items-center gap-2">
+                        <span class="bg-primary-500/20 text-primary-400 p-1.5 rounded-lg"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg></span>
+                        深度監看目標：<span id="inspect-user-name" class="text-primary-400 ml-1">...</span>
+                    </h2>
+                    <p class="text-xs text-gray-400 mt-1.5 font-medium pl-10">檢視對方私有資料夾。點擊學生座號可變更狀態並發送「申請要求」給對方。</p>
+                </div>
+                <button type="button" class="modal-close text-gray-500 hover:text-white bg-white/5 hover:bg-white/10 p-2 rounded-xl transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            
+            <!-- 標籤頁切換 -->
+            <div class="flex bg-black/20 px-8 border-b border-white/5 gap-6">
+                <button class="inspect-tab active text-primary-400 border-b-2 border-primary-500 py-3 font-bold text-sm" data-target="tab-hw">🗂️ 班級與作業</button>
+                <button class="inspect-tab text-gray-500 hover:text-gray-300 py-3 font-bold text-sm transition-colors" data-target="tab-cb">📋 聯絡簿日誌</button>
+                <button class="inspect-tab text-gray-500 hover:text-gray-300 py-3 font-bold text-sm transition-colors" data-target="tab-cfg">⚙️ 系統設定</button>
+            </div>
+
+            <div id="inspector-body" class="flex-1 overflow-y-auto p-6 sm:p-8 relative z-10 custom-scrollbar bg-black/10">
+                <div id="inspector-loading" class="h-full flex flex-col items-center justify-center text-primary-400 animate-pulse">
+                    <svg class="w-10 h-10 mb-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    <p class="font-bold tracking-widest text-sm uppercase">Decrypting Target Data...</p>
+                </div>
+                <div id="inspector-empty" class="hidden h-full flex flex-col items-center justify-center text-gray-500">
+                    <div class="text-5xl mb-4 opacity-50">📂</div>
+                    <p class="font-bold">此用戶的雲端主檔為空，尚無任何備份資料。</p>
+                </div>
+                
+                <!-- Tab: 班級與作業 -->
+                <div id="tab-hw" class="tab-content hidden flex-col h-full">
+                    <div class="flex flex-wrap gap-4 mb-6 bg-white/5 p-4 rounded-2xl border border-white/5">
+                        <div class="flex-1 min-w-[200px]">
+                            <label class="block text-xs font-bold text-gray-400 mb-1.5 uppercase tracking-wider">選擇班級區塊</label>
+                            <select id="inspect-class" class="w-full bg-[#020617] border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-primary-500 font-bold transition-colors cursor-pointer"></select>
+                        </div>
+                        <div class="flex-1 min-w-[200px]">
+                            <label class="block text-xs font-bold text-gray-400 mb-1.5 uppercase tracking-wider">鎖定作業標的</label>
+                            <select id="inspect-hw" class="w-full bg-[#020617] border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-primary-500 font-bold transition-colors cursor-pointer"></select>
+                        </div>
+                    </div>
+                    <div class="flex-1 flex flex-col">
+                        <div class="flex justify-between items-end mb-3">
+                            <h3 class="text-sm font-bold text-gray-300">目前學生陣列</h3>
+                            <span class="text-[10px] text-amber-400 font-medium bg-amber-500/10 px-2 py-1 rounded-lg border border-amber-500/20">點擊修改狀態</span>
+                        </div>
+                        <div id="inspect-students" class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-2 pb-4 content-start"></div>
+                    </div>
+                </div>
+
+                <!-- Tab: 聯絡簿 -->
+                <div id="tab-cb" class="tab-content hidden h-full flex-col">
+                    <div class="bg-black/30 rounded-2xl border border-white/5 p-4 h-full overflow-y-auto custom-scrollbar">
+                        <h3 class="text-sm font-bold text-gray-400 mb-4 border-b border-white/10 pb-2">過去30天聯絡日誌</h3>
+                        <div id="inspect-cb-list" class="space-y-4"></div>
+                    </div>
+                </div>
+
+                <!-- Tab: 種類設定 -->
+                <div id="tab-cfg" class="tab-content hidden h-full flex-col">
+                    <div class="bg-black/30 rounded-2xl border border-white/5 p-4 h-full overflow-y-auto custom-scrollbar">
+                        <h3 class="text-sm font-bold text-gray-400 mb-4 border-b border-white/10 pb-2">自訂作業標籤與顏色</h3>
+                        <div id="inspect-cfg-list" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="p-5 border-t border-white/10 flex justify-end gap-3 bg-black/40 relative z-10">
+                <button type="button" class="modal-close px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 font-bold text-sm transition-colors">關閉視窗</button>
+                <button id="inspect-save-btn" disabled class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-primary-600 to-indigo-500 text-white font-bold text-sm shadow-lg shadow-primary-500/20 hover:shadow-primary-500/40 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+                    發送修改申請至節點
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-container" class="fixed bottom-6 right-6 flex flex-col gap-2 z-[300] pointer-events-none"></div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+    // ✨ 修改：補上 initializeFirestore, persistentLocalCache, persistentMultipleTabManager 的引入
+    import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, setDoc, getDoc, collection, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+    const globalAppId = 'homework-checker-pro';
+    const firebaseConfig = {
+        apiKey: "AIzaSyDuBAZ5hEcrhpYt-XjhiXfi-wuow0Cq83A",
+        authDomain: "cheker-barcode.firebaseapp.com",
+        projectId: "cheker-barcode",
+        storageBucket: "cheker-barcode.firebasestorage.app",
+        messagingSenderId: "1093592859159",
+        appId: "1:1093592859159:web:40c0741defbb074e4ad252"
+    };
+    
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    // ✨ 修改：改用新版的 initializeFirestore 以避免警告並提升穩定性
+    const db = initializeFirestore(app, {
+        localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+    });
+
+    let currentUser = null;
+    let allUsersData = [];
+    let inspectTargetUid = null;
+    let inspectTargetData = null; // 遠端拉取的目標完整資料
+    let inspectModifiedData = null; // 暫存修改的副本
+    let isModified = false;
+    
+    // --- Toast 提示系統 ---
+    window.showToast = function(message, type = 'success') {
+        const container = document.getElementById('toast-container');
+        if (!container) return;
+        const toast = document.createElement('div');
+        const isSuccess = type === 'success';
+        toast.className = `transform translate-y-4 opacity-0 transition-all duration-300 flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl border text-sm font-bold pointer-events-auto backdrop-blur-md ${
+            isSuccess ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+        }`;
+        const icon = isSuccess 
+            ? '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>'
+            : '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
+        toast.innerHTML = `${icon}<span>${message}</span>`;
+        container.appendChild(toast);
+        setTimeout(() => toast.classList.remove('translate-y-4', 'opacity-0'), 10);
+        setTimeout(() => { toast.classList.add('translate-y-4', 'opacity-0'); setTimeout(() => toast.remove(), 300); }, 3200);
+    }
+
+    onAuthStateChanged(auth, (user) => {
+        if (user && user.email === 'ianw.solar@gmail.com') {
+            currentUser = user;
+            document.getElementById('login-overlay').style.opacity = '0';
+            setTimeout(() => document.getElementById('login-overlay').classList.add('hidden'), 500);
+            initDashboard();
+        } else if (user) {
+            document.getElementById('auth-error-msg').textContent = "⛔ 存取拒絕：非系統管理員帳號";
+            document.getElementById('auth-error-msg').classList.remove('hidden');
+            signOut(auth);
+        } else {
+            document.getElementById('login-overlay').classList.remove('hidden');
+            setTimeout(() => document.getElementById('login-overlay').style.opacity = '1', 10);
+        }
+    });
+
+    document.getElementById('admin-login-btn').addEventListener('click', () => {
+        signInWithPopup(auth, new GoogleAuthProvider()).catch(e => {
+            document.getElementById('auth-error-msg').textContent = "登入失敗：" + e.message;
+            document.getElementById('auth-error-msg').classList.remove('hidden');
+        });
+    });
+
+    document.getElementById('admin-logout-btn').addEventListener('click', () => signOut(auth));
+
+    function initDashboard() {
+        // 1. 監聽伺服器維護配置
+        onSnapshot(doc(db, 'artifacts', globalAppId, 'public', 'data', 'serverConfig', 'main'), (docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                const toggle = document.getElementById('maint-toggle');
+                const text = document.getElementById('maint-status-text');
+                toggle.checked = data.isMaintenance || false;
+                text.textContent = data.isMaintenance ? "⛔ 全服鎖定中" : "🟢 系統正常";
+                text.className = data.isMaintenance ? "ml-1 text-rose-400 font-black" : "ml-1 text-emerald-400";
+                
+                document.getElementById('maint-msg').value = data.maintenanceMessage || '';
+                document.getElementById('maint-url').value = data.newVersionUrl || '';
+            }
+        });
+
+        // 2. 監聽全域用戶 Profile
+        onSnapshot(collection(db, 'artifacts', globalAppId, 'public', 'data', 'userProfiles'), (snapshot) => {
+            allUsersData = [];
+            let totalSize = 0;
+            let activeCount = 0;
+            const now = new Date();
+
+            snapshot.forEach(docSnap => {
+                const data = docSnap.data();
+                data.uid = docSnap.id;
+                allUsersData.push(data);
+                
+                if (data.dataSizeKB) totalSize += parseFloat(data.dataSizeKB);
+                if (data.lastActive) {
+                    const last = new Date(data.lastActive);
+                    if ((now - last) < 24 * 60 * 60 * 1000) activeCount++; // 24H內視為近期活躍
+                }
+            });
+
+            // 更新 KPI
+            document.getElementById('kpi-total-users').textContent = allUsersData.length;
+            document.getElementById('kpi-active-users').textContent = activeCount;
+            document.getElementById('kpi-total-size').innerHTML = `${totalSize.toFixed(1)} <span class="text-lg text-gray-500">KB</span>`;
+
+            renderUsersTable();
+        });
+    }
+
+    document.getElementById('maint-save-btn').addEventListener('click', async () => {
+        const isMaintenance = document.getElementById('maint-toggle').checked;
+        const maintenanceMessage = document.getElementById('maint-msg').value.trim();
+        const newVersionUrl = document.getElementById('maint-url').value.trim();
+        
+        try {
+            await setDoc(doc(db, 'artifacts', globalAppId, 'public', 'data', 'serverConfig', 'main'), {
+                isMaintenance, maintenanceMessage, showNewVersionLink: !!newVersionUrl, newVersionUrl, updatedAt: new Date().toISOString()
+            }, { merge: true });
+            window.showToast("全球設定發布成功！", "success");
+        } catch (e) { window.showToast("發布失敗: " + e.message, "error"); }
+    });
+
+    function renderUsersTable(filterText = '') {
+        const tbody = document.getElementById('users-tbody');
+        tbody.innerHTML = '';
+        
+        let filtered = allUsersData;
+        if (filterText) {
+            const lowFilter = filterText.toLowerCase();
+            filtered = allUsersData.filter(u => 
+                (u.displayName && u.displayName.toLowerCase().includes(lowFilter)) || 
+                (u.email && u.email.toLowerCase().includes(lowFilter)) ||
+                u.uid.toLowerCase().includes(lowFilter)
+            );
+        }
+
+        if (filtered.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-gray-600 font-bold">無符合條件的節點。</td></tr>';
+            return;
+        }
+
+        filtered.forEach(u => {
+            const isAdminUser = u.email === 'ianw.solar@gmail.com';
+            const isGuest = !u.email || u.isGuest;
+            const isLocked = u.isLocked || false;
+            
+            const badge = isLocked 
+                ? '<span class="bg-rose-500/20 text-rose-400 px-2.5 py-1 rounded-lg text-xs font-black border border-rose-500/20">🔴 已凍結</span>'
+                : '<span class="bg-emerald-500/10 text-emerald-400 px-2.5 py-1 rounded-lg text-xs font-black border border-emerald-500/20">🟢 運作中</span>';
+            
+            const lastTime = u.lastActive ? new Date(u.lastActive).toLocaleString('zh-TW', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'}) : '未知';
+            const size = u.dataSizeKB ? `${u.dataSizeKB} KB` : '無';
+            
+            const nameDisplay = isGuest ? `🛡️ 匿名訪客 <span class="text-[10px] text-gray-600 ml-1">ID:${u.uid.slice(0,6)}</span>` : u.displayName;
+            const emailDisplay = isGuest ? '無綁定信箱' : u.email;
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="p-4 border-b border-white/5">
+                    <div class="font-bold text-white text-sm flex items-center gap-2">${nameDisplay}</div>
+                    <div class="text-[11px] font-medium text-gray-500 mt-1">${emailDisplay}</div>
+                </td>
+                <td class="p-4 border-b border-white/5 text-xs font-medium text-gray-400">${lastTime}</td>
+                <td class="p-4 border-b border-white/5 text-xs font-black text-primary-400">${size}</td>
+                <td class="p-4 border-b border-white/5">${badge}</td>
+                <td class="p-4 border-b border-white/5 text-right space-x-1.5 whitespace-nowrap">
+                    ${!isAdminUser ? `<button class="inspect-btn bg-primary-500/20 hover:bg-primary-500/40 text-primary-300 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors border border-primary-500/20" data-uid="${u.uid}" data-name="${nameDisplay}">🔍 監看與修改</button>
+                    <button class="lock-btn bg-white/5 hover:bg-white/10 text-gray-300 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors border border-white/10" data-uid="${u.uid}" data-locked="${isLocked}">${isLocked ? '🔓 解鎖' : '🔒 凍結'}</button>
+                    <button class="reset-btn bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors border border-rose-500/20" data-uid="${u.uid}">⚠️ 重置</button>` : '<span class="text-xs text-gray-600 font-bold px-3 py-1.5">最高權限</span>'}
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        // 綁定動態按鈕
+        document.querySelectorAll('.lock-btn').forEach(b => b.addEventListener('click', async (e) => {
+            const uid = e.target.dataset.uid; const locked = e.target.dataset.locked === 'true';
+            await updateDoc(doc(db, 'artifacts', globalAppId, 'public', 'data', 'userProfiles', uid), { isLocked: !locked });
+            window.showToast("鎖定狀態已切換", "info");
+        }));
+
+        document.querySelectorAll('.reset-btn').forEach(b => b.addEventListener('click', async (e) => {
+            if(confirm("【嚴重警告】確定要發送核彈重置該用戶端所有資料嗎？對方將強制洗白。")) {
+                await updateDoc(doc(db, 'artifacts', globalAppId, 'public', 'data', 'userProfiles', e.target.dataset.uid), { forceReset: true });
+                window.showToast("已發送重置指令", "success");
+            }
+        }));
+
+        document.querySelectorAll('.inspect-btn').forEach(b => b.addEventListener('click', (e) => {
+            const uid = e.target.dataset.uid;
+            const name = e.target.dataset.name;
+            openInspector(uid, name);
+        }));
+    }
+
+    document.getElementById('search-input').addEventListener('input', (e) => renderUsersTable(e.target.value));
+
+    const inspModal = document.getElementById('inspector-modal');
+    const btnSaveInspect = document.getElementById('inspect-save-btn');
+    
+    document.querySelectorAll('.modal-close').forEach(b => b.addEventListener('click', () => {
+        inspModal.classList.add('opacity-0');
+        inspModal.querySelector('.glass-panel').classList.add('scale-95');
+        setTimeout(() => inspModal.classList.add('hidden'), 300);
+    }));
+
+    document.querySelectorAll('.inspect-tab').forEach(t => t.addEventListener('click', (e) => {
+        document.querySelectorAll('.inspect-tab').forEach(btn => {
+            btn.classList.remove('active', 'text-primary-400', 'border-b-2', 'border-primary-500');
+            btn.classList.add('text-gray-500');
+        });
+        e.target.classList.add('active', 'text-primary-400', 'border-b-2', 'border-primary-500');
+        e.target.classList.remove('text-gray-500');
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+        document.getElementById(e.target.dataset.target).classList.remove('hidden');
+        document.getElementById(e.target.dataset.target).classList.add('flex');
+    }));
+
+    async function openInspector(uid, displayName) {
+        inspectTargetUid = uid;
+        isModified = false;
+        btnSaveInspect.disabled = true;
+        document.getElementById('inspect-user-name').innerHTML = displayName;
+        
+        inspModal.classList.remove('hidden');
+        setTimeout(() => {
+            inspModal.classList.remove('opacity-0');
+            inspModal.querySelector('.glass-panel').classList.remove('scale-95');
+        }, 10);
+
+        document.getElementById('inspector-loading').classList.remove('hidden');
+        document.getElementById('inspector-empty').classList.add('hidden');
+        document.getElementById('tab-hw').classList.add('hidden');
+        document.getElementById('tab-cb').classList.add('hidden');
+        document.getElementById('tab-cfg').classList.add('hidden');
+
+        try {
+            const snap = await getDoc(doc(db, 'artifacts', globalAppId, 'users', uid, 'appData', 'mainDoc'));
+            if(snap.exists() && snap.data().data) {
+                inspectTargetData = JSON.parse(snap.data().data);
+                inspectModifiedData = JSON.parse(JSON.stringify(inspectTargetData)); // Deep Copy
+                document.getElementById('inspector-loading').classList.add('hidden');
+                document.querySelector('.inspect-tab[data-target="tab-hw"]').click(); // 預設打開 HW
+                renderInspectorClasses();
+                renderInspectorContactBook();
+                renderInspectorConfig();
+            } else {
+                document.getElementById('inspector-loading').classList.add('hidden');
+                document.getElementById('inspector-empty').classList.remove('hidden');
+            }
+        } catch(e) {
+            window.showToast("拉取資料失敗或權限不足", "error");
+            document.querySelector('.modal-close').click();
+        }
+    }
+
+    // 渲染監看：班級與下拉選單
+    function renderInspectorClasses() {
+        const clsSel = document.getElementById('inspect-class');
+        clsSel.innerHTML = '';
+        if(!inspectModifiedData.classes || inspectModifiedData.classes.length === 0) return;
+        inspectModifiedData.classes.forEach(c => {
+            const o = document.createElement('option'); o.value = c.id; o.textContent = c.name; clsSel.appendChild(o);
+        });
+        renderInspectorHomework(clsSel.value);
+        
+        clsSel.onchange = (e) => renderInspectorHomework(e.target.value);
+    }
+
+    // 渲染監看：作業與學生
+    function renderInspectorHomework(classId) {
+        const hwSel = document.getElementById('inspect-hw');
+        const grid = document.getElementById('inspect-students');
+        hwSel.innerHTML = ''; grid.innerHTML = '';
+        const hws = inspectModifiedData.homeworks.filter(h => h.classId === classId);
+        if(hws.length === 0) {
+            hwSel.innerHTML = '<option>此班級無作業</option>';
+            return;
+        }
+        hws.forEach(h => {
+            const o = document.createElement('option'); o.value = h.id; o.textContent = `${h.name} (${h.students.length}人)`; hwSel.appendChild(o);
+        });
+        
+        const drawGrid = (hwId) => {
+            grid.innerHTML = '';
+            const hw = inspectModifiedData.homeworks.find(h => h.id === hwId);
+            if(!hw) return;
+            const typeInfo = inspectModifiedData.homeworkTypes.find(t => t.id === hw.typeId) || inspectModifiedData.homeworkTypes.find(t=>t.id==='default');
+            
+            hw.students.forEach((s, idx) => {
+                const statusDef = typeInfo.statuses.find(st => st.key === s.status) || typeInfo.statuses[0];
+                const btn = document.createElement('button');
+                // 將 Tailwind 顏色對應轉換成適合後台暗黑模式的展現 (用 border 和 text)
+                let colorClass = 'border-gray-700 text-gray-500 bg-gray-900/50';
+                if(statusDef.color.includes('blue')) colorClass = 'border-blue-500 text-blue-400 bg-blue-500/10';
+                if(statusDef.color.includes('emerald')||statusDef.color.includes('green')) colorClass = 'border-emerald-500 text-emerald-400 bg-emerald-500/10';
+                if(statusDef.color.includes('yellow')||statusDef.color.includes('amber')) colorClass = 'border-amber-500 text-amber-400 bg-amber-500/10';
+                if(statusDef.color.includes('rose')||statusDef.color.includes('red')) colorClass = 'border-rose-500 text-rose-400 bg-rose-500/10';
+                
+                btn.className = `p-2 rounded-xl border flex flex-col items-center justify-center transition-all hover:scale-105 ${colorClass}`;
+                btn.innerHTML = `<span class="text-xs font-black opacity-60">${s.seat}</span><span class="text-[10px] font-bold mt-1 leading-tight text-center w-full truncate">${statusDef.text}</span>`;
+                
+                // 點擊修改
+                btn.onclick = () => {
+                    let curIdx = typeInfo.statuses.findIndex(st => st.key === s.status);
+                    const nextSt = typeInfo.statuses[(curIdx+1)%typeInfo.statuses.length];
+                    inspectModifiedData.homeworks.find(h => h.id === hwId).students[idx].status = nextSt.key;
+                    isModified = true;
+                    btnSaveInspect.disabled = false;
+                    drawGrid(hwId); // 重新繪製更新顏色
+                };
+                grid.appendChild(btn);
+            });
+        };
+        drawGrid(hwSel.value);
+        hwSel.onchange = (e) => drawGrid(e.target.value);
+    }
+
+    function renderInspectorContactBook() {
+        const list = document.getElementById('inspect-cb-list');
+        list.innerHTML = '';
+        inspectModifiedData.classes.forEach(c => {
+            if(c.contactBook) {
+                Object.keys(c.contactBook).forEach(dateStr => {
+                    const items = c.contactBook[dateStr];
+                    if(items && items.length > 0) {
+                        const block = document.createElement('div');
+                        block.className = 'p-3 bg-white/5 border border-white/10 rounded-xl';
+                        block.innerHTML = `<div class="text-[10px] text-primary-400 font-bold mb-1.5">[${c.name}] 📅 ${dateStr}</div>
+                                           <ul class="text-xs text-gray-300 space-y-1">${items.map(i=>`<li class="pl-2 border-l-2 border-gray-600 break-words">${i}</li>`).join('')}</ul>`;
+                        list.appendChild(block);
+                    }
+                });
+            }
+        });
+        if(list.innerHTML==='') list.innerHTML = '<p class="text-xs text-gray-500">無記錄</p>';
+    }
+
+    function renderInspectorConfig() {
+        const list = document.getElementById('inspect-cfg-list');
+        list.innerHTML = '';
+        inspectModifiedData.homeworkTypes.forEach(t => {
+            const block = document.createElement('div');
+            block.className = 'p-3 bg-white/5 border border-white/10 rounded-xl';
+            const sts = t.statuses.map(s => {
+                let badge = 'bg-gray-800 border-gray-600 text-gray-400';
+                if(s.color.includes('emerald')) badge='bg-emerald-900 border-emerald-700 text-emerald-400';
+                if(s.color.includes('amber')) badge='bg-amber-900 border-amber-700 text-amber-400';
+                if(s.color.includes('rose')) badge='bg-rose-900 border-rose-700 text-rose-400';
+                if(s.color.includes('blue')) badge='bg-blue-900 border-blue-700 text-blue-400';
+                return `<span class="inline-block px-2 py-0.5 border rounded-lg text-[10px] font-bold mr-1 mb-1 ${badge}">${s.text}</span>`;
+            }).join('');
+            block.innerHTML = `<div class="text-xs text-white font-bold mb-2">${t.name}</div><div>${sts}</div>`;
+            list.appendChild(block);
+        });
+    }
+
+    btnSaveInspect.addEventListener('click', async () => {
+        if(!isModified || !inspectTargetUid) return;
+        
+        try {
+            // 在目標的 profile 塞入一個 Request，讓使用者端下次連線時可以選擇套用。
+            // 由於前台目前尚未實作接受申請 UI，我們先把異動的 Data 直接包裝成 payload 存放在遠端專屬節點，或直接顯示強制寫入。
+            // 這裡直接對 userProfile 新增一個欄位 pendingEditRequest (此為擴充機制)
+            
+            const payload = {
+                requestedBy: 'System Admin',
+                timestamp: new Date().toISOString(),
+                newData: JSON.stringify(inspectModifiedData)
+            };
+            
+            await updateDoc(doc(db, 'artifacts', globalAppId, 'public', 'data', 'userProfiles', inspectTargetUid), {
+                pendingEditRequest: payload,
+                bannerMessage: "⚠️ 管理員已遠端修正您的點收資料，請至設定中確認套用。",
+                bannerActive: true,
+                bannerId: Date.now().toString()
+            });
+            
+            window.showToast("修改申請已派發至該節點！", "success");
+            document.querySelector('.modal-close').click();
+            
+        } catch(e) { window.showToast("發送失敗: " + e.message, "error"); }
+    });
+
+</script>
+</body>
+</html>
